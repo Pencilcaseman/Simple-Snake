@@ -53,7 +53,7 @@ public:
 	void makeMove()
 	{
 		// Find the path to the food
-		currentPath = shortestPathToFood();
+		currentPath = pathFind(game->snakePositions[0].x, game->snakePositions[0].y, game->foodPos.x, game->foodPos.y);
 
 		if (!currentPath.empty())
 		{
@@ -70,21 +70,44 @@ public:
 			}
 			else if (mode == "SAFE")
 			{
+				std::string newDirection;
 
+				// Just try to survive
+				auto tmp = game->direction = "UP";
+
+				game->direction = "UP";
+				if (!game->checkDeathOnUpdate())
+					newDirection = "UP";
+
+				game->direction = "DOWN";
+				if (!game->checkDeathOnUpdate())
+					newDirection = "DOWN";
+
+				game->direction = "LEFT";
+				if (!game->checkDeathOnUpdate())
+					newDirection = "LEFT";
+
+				game->direction = "RIGHT";
+				if (!game->checkDeathOnUpdate())
+					newDirection = "RIGHT";
+
+				game->direction = tmp;
+
+				game->setDirection(newDirection);
 			}
 		}
 
 		updates++;
 	}
 
-	std::vector<std::string> shortestPathToFood() const
+	std::vector<std::string> pathFind(size_t startX, size_t startY, size_t findX, size_t findY) const
 	{
 		auto grid = convertBoardToSpots();
 
 		std::vector<Spot *> openSet;
 		std::vector<Spot *> closedSet;
-		Spot *start = &grid[game->snakePositions[0].y][game->snakePositions[0].x];
-		Spot *end = &grid[game->foodPos.y][game->foodPos.x];
+		Spot *start = &grid[startY][startX]; // &grid[game->snakePositions[0].y][game->snakePositions[0].x];
+		Spot *end = &grid[findY][findX]; // &grid[game->foodPos.y][game->foodPos.x];
 
 		openSet.push_back(start);
 

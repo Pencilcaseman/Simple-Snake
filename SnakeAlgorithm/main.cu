@@ -12,7 +12,7 @@ int main()
 	size_t windowWidth = 800;
 	size_t windowHeight = 800;
 	double blockDensity = 0;
-	unsigned int updateFrames = 5; // 40;
+	unsigned int updateFrames = 15; // 40;
 	int deathSaveTimer = 20; // 10;
 
 	LevelDesigner designer(blocksX, blocksY, windowWidth, windowHeight);
