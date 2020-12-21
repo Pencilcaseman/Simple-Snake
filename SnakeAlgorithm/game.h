@@ -43,7 +43,7 @@ public:
 		}
 
 		updateMod = fmod;
-		difficulty = difficultyLevel;
+		difficulty = rapid::rapidMax(difficultyLevel, 1);
 
 		create(w, h, "Snake Game");
 	}
@@ -84,7 +84,7 @@ public:
 			{
 				for (size_t j = 0; j < blocksX; j++)
 				{
-					if (board[i][j] && i == headX && j == headY)
+					if (board[i][j] && j == headX && i == headY)
 						placeSnake = true;
 				}
 			}
@@ -188,13 +188,8 @@ public:
 
 	void updateSnake()
 	{
-		std::cout << frameRate() << "\n";
-
 		if (shouldPlaceFood)
-		{
 			placeFood();
-			shouldPlaceFood = false;
-		}
 
 		if (deathPause == -1 && checkDeathOnUpdate())
 			deathPause = difficulty;
@@ -223,6 +218,8 @@ public:
 
 		if (deathPause == 0)
 			rapid::RapidError("Game Over!", "Well played. Try again!").display();
+		else if (deathPause != -1)
+			std::cout << "============== " << deathPause << "==============\n";
 
 		// Food collision
 		if (snakePositions[0].x == foodPos.x && snakePositions[0].y == foodPos.y)
@@ -300,6 +297,7 @@ public:
 		}
 
 		foodPos = {foodX, foodY};
+		shouldPlaceFood = false;
 	}
 
 	bool onKeyPress(rapid::keyType key, rapid::keyAction action, const std::vector<rapid::keyModifier> &mods) override
@@ -319,7 +317,7 @@ public:
 		return true;
 	}
 
-	void setDirection(std::string dir)
+	void setDirection(const std::string &dir)
 	{
 		if (!(dir == "UP" ||
 			dir == "DOWN" ||
