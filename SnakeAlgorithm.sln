@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SnakeAlgorithm", "SnakeAlgorithm\SnakeAlgorithm.vcxproj", "{001E975A-69C1-4F2E-98F5-A640977C9E72}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{001E975A-69C1-4F2E-98F5-A640977C9E72}.Debug|x64.ActiveCfg = Debug|x64
+		{001E975A-69C1-4F2E-98F5-A640977C9E72}.Debug|x64.Build.0 = Debug|x64
+		{001E975A-69C1-4F2E-98F5-A640977C9E72}.Release|x64.ActiveCfg = Release|x64
+		{001E975A-69C1-4F2E-98F5-A640977C9E72}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3FDD16D0-8C2B-4FDA-9210-D2CF02E355AE}
+	EndGlobalSection
+EndGlobal
