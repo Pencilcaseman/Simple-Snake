@@ -5,10 +5,10 @@
 class Spot
 {
 public:
-	double x, y;
-	double f, g, h;
-	std::vector<Spot *> neighbors;
-	bool wall;
+	double x = 0, y = 0;
+	double f = 0, g = 0, h = 0;
+	std::vector<Spot *> neighbors{};
+	bool wall = false;
 
 	Spot *previous = nullptr;
 
@@ -23,17 +23,37 @@ public:
 		h = hh;
 
 		wall = isWall;
+
+		neighbors.clear();
 	}
 
 	void addNeighbors(std::vector<std::vector<Spot>> &grid)
 	{
 		if (x > 0)
 			neighbors.emplace_back(&grid[y][x - 1]);
+
 		if (x < grid[0].size() - 1)
 			neighbors.emplace_back(&grid[y][x + 1]);
+
 		if (y > 0)
 			neighbors.emplace_back(&grid[y - 1][x]);
+
 		if (y < grid.size() - 1)
+			neighbors.emplace_back(&grid[y + 1][x]);
+	}
+
+	void addNeighborsConditional(std::vector<std::vector<Spot>> &grid)
+	{
+		if (x > 0 && !grid[y][x - 1].wall && grid[y][x - 1].f != 1)
+			neighbors.emplace_back(&grid[y][x - 1]);
+
+		if (x < grid[0].size() - 1 && !grid[y][x + 1].wall && grid[y][x + 1].f != 1)
+			neighbors.emplace_back(&grid[y][x + 1]);
+
+		if (y > 0 && !grid[y - 1][x].wall && grid[y - 1][x].f != 1)
+			neighbors.emplace_back(&grid[y - 1][x]);
+
+		if (y < grid.size() - 1 && !grid[y + 1][x].wall && grid[y + 1][x].f != 1)
 			neighbors.emplace_back(&grid[y + 1][x]);
 	}
 };
@@ -42,7 +62,10 @@ class SnakeBot
 {
 public:
 	SnakeGame *game;
+
 	std::vector<std::string> currentPath;
+	std::vector<std::string> safePath;
+
 	size_t prevSnakeLen = 1;
 	size_t updates = 0;
 	std::string mode = "PATH";
@@ -52,28 +75,80 @@ public:
 
 	void makeMove()
 	{
-		// Find the path to the food
-		currentPath = pathFind(game->snakePositions[0].x, game->snakePositions[0].y, game->foodPos.x, game->foodPos.y);
-
-		if (!currentPath.empty())
+		if (mode != "ULTRA_SAFE")
 		{
-			// Check if it is safe to path
-			if (currentPath[0] == "INVALID")
-				mode = "SAFE";
-			else
-				mode = "PATH";
+			// Find the path to the food
+			currentPath = pathFind(game->snakePositions[0].x, game->snakePositions[0].y, game->foodPos.x, game->foodPos.y, convertBoardToSpots());
 
-			if (mode == "PATH")
+			if (!currentPath.empty())
 			{
-				game->setDirection(currentPath[0]);
-				currentPath.erase(currentPath.begin());
+				// Check if it is safe to path
+				if (currentPath[0] == "INVALID")
+					mode = "SAFE";
+				else
+					mode = "PATH";
+
+				if (mode == "PATH")
+				{
+					game->setDirection(currentPath[0]);
+					currentPath.erase(currentPath.begin());
+				}
+				else if (mode == "SAFE")
+				{
+					std::string newDirection = "NONE";
+					auto prevDir = game->direction;
+
+					// Just try to survive
+
+					game->direction = "UP";
+					if (!game->checkDeathOnUpdate())
+						newDirection = "UP";
+
+					game->direction = "DOWN";
+					if (!game->checkDeathOnUpdate())
+						newDirection = "DOWN";
+
+					game->direction = "LEFT";
+					if (!game->checkDeathOnUpdate())
+						newDirection = "LEFT";
+
+					game->direction = "RIGHT";
+					if (!game->checkDeathOnUpdate())
+						newDirection = "RIGHT";
+
+					game->setDirection(prevDir);
+
+					if (newDirection != "NONE")
+						game->setDirection(newDirection);
+				}
 			}
-			else if (mode == "SAFE")
+		}
+		else
+		{
+			// Attempt to find a path to the food
+			// currentPath = pathFind(game->snakePositions[0].x, game->snakePositions[0].y, game->foodPos.x, game->foodPos.y, convertBoardToSpots());
+			// if (!currentPath.empty())
+			// 	if (currentPath[0] != "INVALID")
+			// 		mode = "PATH";
+
+			if (!safePath.empty())
 			{
-				std::string newDirection;
+				game->setDirection(safePath[0]);
+				safePath.erase(safePath.begin());
+			}
+			else
+			{
+				mode = "PATH";
+			}
+
+			/*
+			// Ensure that the attempted move will not result in death
+			if (game->checkDeathOnUpdate())
+			{
+				std::string newDirection = "NONE";
+				auto prevDir = game->direction;
 
 				// Just try to survive
-				auto tmp = game->direction = "UP";
 
 				game->direction = "UP";
 				if (!game->checkDeathOnUpdate())
@@ -91,18 +166,183 @@ public:
 				if (!game->checkDeathOnUpdate())
 					newDirection = "RIGHT";
 
-				game->direction = tmp;
+				game->setDirection(prevDir);
 
-				game->setDirection(newDirection);
+				if (newDirection != "NONE")
+					game->setDirection(newDirection);
+
+				game->snakeR = 255;
+				game->snakeG = 255;
+				game->snakeB = 255;
 			}
+			*/
+		}
+
+		// Ensure that the entire snake can fit into the section being entered
+
+		auto boardState = convertBoardToSpots(false);
+
+		size_t x = game->snakePositions[0].x;
+		size_t y = game->snakePositions[0].y;
+
+		int requiredSize = 2;
+
+		boardState[y][x].f = 1;
+
+		std::vector<std::string> valid = {"UP", "DOWN", "LEFT", "RIGHT"};
+
+		if (mode != "ULTRA_SAFE")
+		{
+			// Check pointing up
+			if (y == 0 || boardState[y - 1][x].wall)
+				valid.erase(std::remove(valid.begin(), valid.end(), "UP"), valid.end());
+
+			// Check pointing down
+			if (y == game->blocksY - 1 || boardState[y + 1][x].wall)
+				valid.erase(std::remove(valid.begin(), valid.end(), "DOWN"), valid.end());
+
+			// Check pointing left
+			if (x == 0 || boardState[y][x - 1].wall)
+				valid.erase(std::remove(valid.begin(), valid.end(), "LEFT"), valid.end());
+
+			// Check pointing right
+			if (x == game->blocksX - 1 || boardState[y][x + 1].wall)
+				valid.erase(std::remove(valid.begin(), valid.end(), "RIGHT"), valid.end());
+
+			// Check pointing up
+			if (y > 0 && !boardState[y - 1][x].wall)
+			{
+				std::vector<Spot *> spotsFilled = floodFill(x, y - 1, boardState);
+
+				if (spotsFilled.size() < game->snakePositions.size() + requiredSize)
+					valid.erase(std::remove(valid.begin(), valid.end(), "UP"), valid.end());
+			}
+
+			// Check pointing down
+			if (y < game->blocksY - 1 && !boardState[y + 1][x].wall)
+			{
+				std::vector<Spot *> spotsFilled = floodFill(x, y + 1, boardState);
+
+				if (spotsFilled.size() < game->snakePositions.size() + requiredSize)
+					valid.erase(std::remove(valid.begin(), valid.end(), "DOWN"), valid.end());
+			}
+
+			// Check pointing left
+			if (x > 0 && !boardState[y][x - 1].wall)
+			{
+				std::vector<Spot *> spotsFilled = floodFill(x - 1, y, boardState);
+
+				if (spotsFilled.size() < game->snakePositions.size() + requiredSize)
+					valid.erase(std::remove(valid.begin(), valid.end(), "LEFT"), valid.end());
+			}
+
+			// Check pointing right
+			if (x < game->blocksX - 1 && !boardState[y][x + 1].wall)
+			{
+				std::vector<Spot *> spotsFilled = floodFill(x + 1, y, boardState);
+
+				if (spotsFilled.size() < game->snakePositions.size() + requiredSize)
+					valid.erase(std::remove(valid.begin(), valid.end(), "RIGHT"), valid.end());
+			}
+		}
+
+		if (!valid.empty())
+		{
+			if (std::find(valid.begin(), valid.end(), game->direction) == valid.end())
+			{
+				// Pick a new direction from the valid directions
+				game->setDirection(valid[0]);
+			}
+		}
+		else
+		{
+			// The snake is entirely enclosed by walls and/or itself
+
+			if (mode != "ULTRA_SAFE")
+			{
+				boardState = convertBoardToSpots();
+
+				// Find the piece of the snake closest to the end that has the longest possible path
+				mode = "ULTRA_SAFE";
+				safePath.clear();
+				safePath.resize(0);
+
+				std::vector<std::string> longestPath;
+				Spot *finalTarget = nullptr;
+
+				Spot *target = nullptr;
+
+				for (size_t i = game->snakePositions.size() - 1; i > 0; i--)
+				{
+					// The target position of the snake
+					target = &boardState[game->snakePositions[i].y][game->snakePositions[i].x];
+
+					auto tempWall = target->wall;
+					auto tempF = target->f;
+
+					target->wall = false;
+					target->f = 0;
+
+					auto path = pathFind(game->snakePositions[0].x, game->snakePositions[0].y, target->x, target->y, boardState, true);
+
+					target->wall = tempWall;
+					target->f = tempF;
+
+					if (!path.empty() && path[0] != "INVALID")
+					{
+						// The current path is long enough for the snake to get out safely
+						safePath = path;
+						finalTarget = target;
+						break;
+					}
+
+					// if (path.size() > longestPath.size())
+					// {
+					// 	// The current path is long enough for the snake to get out safely
+					// 	longestPath = path;
+					// 	finalTarget = target;
+					// }
+				}
+
+				// safePath = longestPath;
+
+				std::cout << "\n\n\n";
+				std::cout << "Target: " << target->x << ", " << target->y << "\n";
+				for (const auto &element : safePath)
+					std::cout << "Path: " << element << "\n";
+
+				game->setDirection(safePath[0]);
+				safePath.erase(safePath.begin());
+
+				// rapid::RapidWarning("Warning", "Snake cannot escape this situation").display();
+			}
+		}
+
+		if (mode == "PATH")
+		{
+			game->snakeR = 50;
+			game->snakeG = 255;
+			game->snakeB = 50;
+		}
+		else if (mode == "SAFE")
+		{
+			game->snakeR = 50;
+			game->snakeG = 100;
+			game->snakeB = 255;
+		}
+		else if (mode == "ULTRA_SAFE")
+		{
+			game->snakeR = 255;
+			game->snakeG = 170;
+			game->snakeB = 170;
 		}
 
 		updates++;
 	}
 
-	std::vector<std::string> pathFind(size_t startX, size_t startY, size_t findX, size_t findY) const
+	std::vector<std::string> pathFind(size_t startX, size_t startY, size_t findX, size_t findY, std::vector<std::vector<Spot>> &grid, bool longest = false) const
 	{
-		auto grid = convertBoardToSpots();
+		// auto grid = convertBoardToSpots();
 
 		std::vector<Spot *> openSet;
 		std::vector<Spot *> closedSet;
@@ -120,8 +360,18 @@ public:
 				// Find the closest cell in the open set
 				size_t index = 0;
 				for (size_t i = 0; i < openSet.size(); i++)
-					if (openSet[i]->f < openSet[index]->f)
-						index = i;
+				{
+					if (longest)
+					{
+						if (openSet[i]->f > openSet[index]->f)
+							index = i;
+					}
+					else
+					{
+						if (openSet[i]->f < openSet[index]->f)
+							index = i;
+					}
+				}
 
 				auto current = openSet[index];
 
@@ -183,11 +433,23 @@ public:
 						{
 							// Cell is in the open set
 
-							if (tempG < cell->g)
+							if (longest)
 							{
-								// Found shorter path to this cell
-								cell->g = tempG;
-								newPath = true;
+								if (tempG > cell->g)
+								{
+									// Found shorter path to this cell
+									cell->g = tempG;
+									newPath = true;
+								}
+							}
+							else
+							{
+								if (tempG < cell->g)
+								{
+									// Found shorter path to this cell
+									cell->g = tempG;
+									newPath = true;
+								}
 							}
 						}
 						else
@@ -217,7 +479,38 @@ public:
 		return {"hello"};
 	}
 
-	std::vector<std::vector<Spot>> convertBoardToSpots() const
+	std::vector<Spot *> floodFill(size_t x, size_t y, std::vector<std::vector<Spot>> tempBoard)
+	{
+		// auto tempBoard = convertBoardToSpots(false);
+
+		Spot *current = &tempBoard[y][x];
+
+		current->addNeighborsConditional(tempBoard);
+		current->f = 1;
+
+		std::vector<Spot *> cellsFilled;
+
+		floodFillRecurse(current, tempBoard, &cellsFilled);
+
+		return cellsFilled;
+	}
+
+	void floodFillRecurse(Spot *cell, std::vector<std::vector<Spot>> &grid, std::vector<Spot *> *cellsFilled)
+	{
+		for (auto &cellNeighbor : cell->neighbors)
+		{
+			if (cellNeighbor->f != 1)
+			{
+				cellNeighbor->addNeighborsConditional(grid);
+				cellNeighbor->f = 1;
+				cellsFilled->emplace_back(cellNeighbor);
+
+				floodFillRecurse(cellNeighbor, grid, cellsFilled);
+			}
+		}
+	}
+
+	std::vector<std::vector<Spot>> convertBoardToSpots(bool addNeighbors = true) const
 	{
 		std::vector<std::vector<Spot>> result;
 		result.resize(game->blocksY);
@@ -240,11 +533,14 @@ public:
 				result[pos.y][pos.x].wall = true;
 		}
 
-		for (size_t i = 0; i < game->blocksY; i++)
+		if (addNeighbors)
 		{
-			for (size_t j = 0; j < game->blocksX; j++)
+			for (size_t i = 0; i < game->blocksY; i++)
 			{
-				result[i][j].addNeighbors(result);
+				for (size_t j = 0; j < game->blocksX; j++)
+				{
+					result[i][j].addNeighbors(result);
+				}
 			}
 		}
 
