@@ -75,6 +75,8 @@ public:
 
 	void makeMove()
 	{
+		std::cout << "Current mode is: " << mode << "\n";
+
 		if (mode != "ULTRA_SAFE")
 		{
 			// Find the path to the food
@@ -84,9 +86,15 @@ public:
 			{
 				// Check if it is safe to path
 				if (currentPath[0] == "INVALID")
+				{
+					std::cout << "Setting mode to SAFE, as no path to the food could be found\n";
 					mode = "SAFE";
+				}
 				else
+				{
+					std::cout << "Setting the mode to PATH, as a path to the food was found\n";
 					mode = "PATH";
+				}
 
 				if (mode == "PATH")
 				{
@@ -138,6 +146,7 @@ public:
 			}
 			else
 			{
+				std::cout << "Setting mode to path because the safe path has run out\n";
 				mode = "PATH";
 			}
 
@@ -185,7 +194,7 @@ public:
 		size_t x = game->snakePositions[0].x;
 		size_t y = game->snakePositions[0].y;
 
-		int requiredSize = 2;
+		int requiredSize = game->snakePositions.size() / 2;
 
 		boardState[y][x].f = 1;
 
@@ -260,6 +269,8 @@ public:
 
 			if (mode != "ULTRA_SAFE")
 			{
+				std::cout << "Setting mode to ULTRA_SAFE, as snake was found to be blocked in\n";
+
 				boardState = convertBoardToSpots();
 
 				// Find the piece of the snake closest to the end that has the longest possible path
@@ -288,33 +299,42 @@ public:
 					target->wall = tempWall;
 					target->f = tempF;
 
-					if (!path.empty() && path[0] != "INVALID")
+					// Ensure the path is not a repeat -- this leads to an infinite loop
+					if (path != currentPath)
 					{
-						// The current path is long enough for the snake to get out safely
-						safePath = path;
-						finalTarget = target;
-						break;
-					}
+						if (path.size() > (game->snakePositions.size() - i) && path[0] != "INVALID")
+						{
+							// The current path is long enough for the snake to get out safely
+							safePath = path;
+							finalTarget = target;
+							break;
+						}
 
-					// if (path.size() > longestPath.size())
-					// {
-					// 	// The current path is long enough for the snake to get out safely
-					// 	longestPath = path;
-					// 	finalTarget = target;
-					// }
+						if (path.size() > longestPath.size())
+						{
+							// The current path is long enough for the snake to get out safely
+							longestPath = path;
+							finalTarget = target;
+						}
+					}
 				}
 
-				// safePath = longestPath;
+				if (!safePath.empty())
+				{
+					game->setDirection(safePath[0]);
+					safePath.erase(safePath.begin());
+				}
+				else
+				{
+					std::cout << "Using the longest path found because no safe path was available\n";
+					
+					safePath = longestPath;
+					game->setDirection(safePath[0]);
+					safePath.erase(safePath.begin());
+					// rapid::RapidWarning("Warning", "Snake cannot escape this situation").display();
+				}
 
-				std::cout << "\n\n\n";
-				std::cout << "Target: " << target->x << ", " << target->y << "\n";
-				for (const auto &element : safePath)
-					std::cout << "Path: " << element << "\n";
-
-				game->setDirection(safePath[0]);
-				safePath.erase(safePath.begin());
-
-				// rapid::RapidWarning("Warning", "Snake cannot escape this situation").display();
+				// currentPath = safePath;
 			}
 		}
 

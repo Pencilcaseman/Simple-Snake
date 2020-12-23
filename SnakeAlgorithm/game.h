@@ -324,15 +324,18 @@ public:
 
 	void setDirection(const std::string &dir)
 	{
-		if (!(dir == "UP" ||
-			dir == "DOWN" ||
-			dir == "LEFT" ||
-			dir == "RIGHT"))
+		if (!dir.empty())
 		{
-			rapid::RapidError("Direction Error", "Unknown direction given to snake: " + dir).display();
-		}
+			if (!(dir == "UP" ||
+				dir == "DOWN" ||
+				dir == "LEFT" ||
+				dir == "RIGHT"))
+			{
+				rapid::RapidError("Direction Error", "Unknown direction given to snake: " + dir).display();
+			}
 
-		direction = dir;
+			direction = dir;
+		}
 	}
 };
 
