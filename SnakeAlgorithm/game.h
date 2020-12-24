@@ -3,6 +3,29 @@
 #include <rapid/rapid.h>
 #include <random>
 
+inline double randomDouble()
+{
+	// Random double in range [0, 1)
+
+	static std::uniform_real_distribution<double> distribution(0., 1.);
+	static std::mt19937 generator(TIME * 100000);
+	return distribution(generator);
+}
+
+inline double randomDouble(const double &min, const double &max)
+{
+	// Random double in range [min, max)
+
+	return min + (max - min) * randomDouble();
+}
+
+inline double clamp(const double &x, const double &min, const double &max)
+{
+	if (x < min) return min;
+	if (x > max) return max;
+	return x;
+}
+
 class SnakeGame : public rapid::RapidGraphics
 {
 public:
@@ -458,8 +481,8 @@ public:
 		{
 			// Set the current position to the selected mode
 
-			int x = (int) mouseX / (int) blockWidth;
-			int y = (int) mouseY / (int) blockHeight;
+			auto x = (int) (mouseX / blockWidth);
+			auto y = (int) (mouseY / blockHeight);
 
 			if (x < blocksX && y < blocksY)
 				board[y][x] = mousePressed(0) ? true : false;

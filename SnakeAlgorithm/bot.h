@@ -2,6 +2,8 @@
 
 #include "game.h"
 
+#define CONVOLUTED_PATH false
+
 class Spot
 {
 public:
@@ -275,8 +277,8 @@ public:
 
 				// Find the piece of the snake closest to the end that has the longest possible path
 				mode = "ULTRA_SAFE";
-				safePath.clear();
-				safePath.resize(0);
+				// safePath.clear();
+				// safePath.resize(0);
 
 				std::vector<std::string> longestPath;
 				Spot *finalTarget = nullptr;
@@ -300,7 +302,7 @@ public:
 					target->f = tempF;
 
 					// Ensure the path is not a repeat -- this leads to an infinite loop
-					if (path != currentPath)
+					if (path != safePath)
 					{
 						if (path.size() > (game->snakePositions.size() - i) && path[0] != "INVALID")
 						{
@@ -482,7 +484,7 @@ public:
 
 						if (newPath)
 						{
-							cell->h = heuristic(cell, end);
+							cell->h = heuristic(cell, end, !longest && CONVOLUTED_PATH);
 							cell->f = cell->g + cell->h;
 							cell->previous = current;
 						}
@@ -567,11 +569,11 @@ public:
 		return result;
 	}
 
-	double heuristic(const Spot *a, const Spot *b) const
+	double heuristic(const Spot *a, const Spot *b, bool randVal = false) const
 	{
 		double dx = b->x - a->x;
 		double dy = b->y - a->y;
 
-		return sqrt((dx * dx) + (dy * dy));
+		return sqrt((dx * dx) + (dy * dy)) + ((randVal && updates % 5 == 0) ? randomDouble(0, 10) : 0);
 	}
 };
